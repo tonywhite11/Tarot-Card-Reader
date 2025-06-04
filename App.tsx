@@ -76,45 +76,47 @@ useEffect(() => {
 }, []);
 
   const handleCardClick = useCallback(async (index: number) => {
-    if (revealedStates[index] || !drawnCards[index] || isCardLoading[index] || isLoading) {
-      return;
+  if (revealedStates[index] || !drawnCards[index] || isCardLoading[index] || isLoading) {
+    return;
+  }
+
+  const newCardLoading = [...isCardLoading] as [boolean, boolean, boolean];
+  newCardLoading[index] = true;
+  setIsCardLoading(newCardLoading);
+  setError(null);
+
+  try {
+    const card = drawnCards[index]!;
+    const aiReading = await getIndividualCardReading(card, cardPositionContexts[index]);
+
+    const newReadings = [...individualReadings] as IndividualReadings;
+    if (aiReading.toLowerCase().includes("error generating reading")) {
+      newReadings[index] = `Error: ${aiReading}`;
+      setError(`An issue occurred while interpreting '${card.name}'. Please check logs or try again.`);
+    } else {
+      newReadings[index] = aiReading;
+      // Call speak() directly after user interaction and after reading is ready
+      speak(aiReading);
     }
+    setIndividualReadings(newReadings);
 
-    const newCardLoading = [...isCardLoading] as [boolean, boolean, boolean];
-    newCardLoading[index] = true;
-    setIsCardLoading(newCardLoading);
-    setError(null);
+    const newRevealedStates = [...revealedStates] as RevealedStates;
+    newRevealedStates[index] = true;
+    setRevealedStates(newRevealedStates);
 
-    try {
-      const card = drawnCards[index]!;
-      const aiReading = await getIndividualCardReading(card, cardPositionContexts[index]);
-
-      const newReadings = [...individualReadings] as IndividualReadings;
-      if (aiReading.toLowerCase().includes("error generating reading")) {
-        newReadings[index] = `Error: ${aiReading}`;
-        setError(`An issue occurred while interpreting '${card.name}'. Please check logs or try again.`);
-      } else {
-        newReadings[index] = aiReading;
-      }
-      setIndividualReadings(newReadings);
-
-      const newRevealedStates = [...revealedStates] as RevealedStates;
-      newRevealedStates[index] = true;
-      setRevealedStates(newRevealedStates);
-
-    } catch (err) {
-      console.error(`Failed to get reading for card ${index + 1}:`, err);
-      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
-      setError(`Failed to get reading for ${drawnCards[index]?.name}: ${errorMessage}`);
-      const newReadings = [...individualReadings] as IndividualReadings;
-      newReadings[index] = "Error fetching reading.";
-      setIndividualReadings(newReadings);
-    } finally {
-      const finalCardLoading = [...isCardLoading] as [boolean, boolean, boolean];
-      finalCardLoading[index] = false;
-      setIsCardLoading(finalCardLoading);
-    }
-  }, [drawnCards, revealedStates, individualReadings, isCardLoading, isLoading, cardPositionContexts]);
+  } catch (err) {
+    console.error(`Failed to get reading for card ${index + 1}:`, err);
+    const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+    setError(`Failed to get reading for ${drawnCards[index]?.name}: ${errorMessage}`);
+    const newReadings = [...individualReadings] as IndividualReadings;
+    newReadings[index] = "Error fetching reading.";
+    setIndividualReadings(newReadings);
+  } finally {
+    const finalCardLoading = [...isCardLoading] as [boolean, boolean, boolean];
+    finalCardLoading[index] = false;
+    setIsCardLoading(finalCardLoading);
+  }
+}, [drawnCards, revealedStates, individualReadings, isCardLoading, isLoading, cardPositionContexts]);
 
   // Effect to trigger overall reading when all individual cards are revealed and have readings
   useEffect(() => {
