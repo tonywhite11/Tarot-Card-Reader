@@ -36,13 +36,12 @@ const generateContentWithRetries = async (prompt: string, maxRetries = 3) => {
   return "Failed to generate reading after multiple retries."; // Should be caught by the loop's error handling
 };
 
-
 export const getIndividualCardReading = async (card: DrawnTarotCard, positionContext: string): Promise<string> => {
   const orientation = card.isReversed ? "reversed" : "upright";
   const relevantMeaning = card.isReversed ? card.fullMeaningReversed : card.fullMeaningUpright;
   const relevantKeywords = card.isReversed ? card.keywordsReversed.join(', ') : card.keywordsUpright.join(', ');
 
- const prompt = `
+  const prompt = `
 You are a mystical Tarot expert. The user is performing a three-card spread.
 They have just revealed the "${card.name}" card, which is ${orientation}. This card is in the position representing "${positionContext}".
 
@@ -50,11 +49,11 @@ Card Details:
 - Name: ${card.name}
 - Orientation: ${orientation}
 - Position Context: ${positionContext}
-- Keywords associated: ${relevantKeywords}
-- Core Meaning for this orientation: ${relevantMeaning}
+- Keywords: ${relevantKeywords}
+- Core Meaning: ${relevantMeaning}
 
 Concisely explain the essence of this single card and its immediate implication for the user based on its position and orientation.
-Summarize the meaning in 1 short, clear sentence (no more than 50 words). Be concise and direct.
+Summarize the meaning in 1 short, clear sentence (no more than 25 words). Be concise and direct.
 Do not greet the user. Directly provide the interpretation for this one card.
 Example for The Fool (upright) as 'The Situation': "An exhilarating new beginning is upon you, urging you to take a leap of faith."
 `;
@@ -90,11 +89,12 @@ The user has drawn the following cards:
 3. ${cardInfo3}
 
 Please provide a cohesive and insightful overall reading that synthesizes these three cards, considering their positions.
-Weave them into a short narrative or guidance for the user (around 3-5 sentences).
+Weave them into a very brief narrative or guidance for the user (6-8 sentences, no more than 50 words total).
 Focus on a positive or constructive outlook. Avoid just listing the cards again; focus on their combined message.
 Start the reading directly with the insight.
-Example: "Your current path of new beginnings (Card 1) calls for decisive action and willpower (Card 2), leading to a triumphant outcome if you stay true to your course (Card 3). Trust your inner strength."
+Example: "Your current path of new beginnings (Card 1) calls for decisive action and willpower (Card 2), leading to a triumphant outcome if you stay true to your course (Card 3)."
 `;
+
   const result = await generateContentWithRetries(prompt);
   return result ?? "An error occurred while generating the overall tarot reading.";
 };
