@@ -1,0 +1,5 @@
+{
+  "name": "Mystic Vision Tarot Reader",
+  "description": "Draw a tarot card and receive an insightful AI-powered reading to guide your path using the Gemini API.",
+  "requestFramePermissions": []
+}
