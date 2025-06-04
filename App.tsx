@@ -13,6 +13,7 @@ const App: React.FC = () => {
   const initialRevealed: RevealedStates = [false, false, false];
   const initialReadings: IndividualReadings = [null, null, null];
 
+  const [overallSpoken, setOverallSpoken] = useState(false);
   const [drawnCards, setDrawnCards] = useState<ThreeCardSpread>(initialCards);
   const [revealedStates, setRevealedStates] = useState<RevealedStates>(initialRevealed);
   const [individualReadings, setIndividualReadings] = useState<IndividualReadings>(initialReadings);
@@ -26,16 +27,17 @@ const App: React.FC = () => {
   const cardPositionContexts = ["The Core Situation", "The Action or Challenge", "The Outcome or Guidance"];
 
   const resetGame = () => {
-    setDrawnCards(initialCards);
-    setRevealedStates(initialRevealed);
-    setIndividualReadings(initialReadings);
-    setOverallReading(null);
-    setError(null);
-    setIsLoading(false);
-    setIsCardLoading([false, false, false]);
-    setGameStage("initial");
-    setAllCardsSpoken(false); // <-- Reset spoken state
-  };
+  setDrawnCards(initialCards);
+  setRevealedStates(initialRevealed);
+  setIndividualReadings(initialReadings);
+  setOverallReading(null);
+  setError(null);
+  setIsLoading(false);
+  setIsCardLoading([false, false, false]);
+  setGameStage("initial");
+  setAllCardsSpoken(false);
+  setOverallSpoken(false); // <-- Add this line
+};
 
   // Stop audio on page unload/refresh
   useEffect(() => {
@@ -48,10 +50,16 @@ const App: React.FC = () => {
 
   // Only play the overall reading after all cards have been spoken
 useEffect(() => {
-  if (overallReading && gameStage === "overallDone" && allCardsSpoken) {
+  if (
+    overallReading &&
+    gameStage === "overallDone" &&
+    allCardsSpoken &&
+    !overallSpoken
+  ) {
     speak("Your Mystic Reading. " + overallReading);
+    setOverallSpoken(true);
   }
-}, [overallReading, gameStage, allCardsSpoken]);
+}, [overallReading, gameStage, allCardsSpoken, overallSpoken]);
 
   // Stop audio when drawing a new spread
   const handleDrawSpread = useCallback(() => {
