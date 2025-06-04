@@ -55,23 +55,25 @@ useEffect(() => {
 
   // Stop audio when drawing a new spread
   const handleDrawSpread = useCallback(() => {
-    stopSpeech();
-    resetGame();
-    setIsLoading(true);
-    setError(null);
-    try {
-      const cards = drawThreeCards();
-      setDrawnCards(cards);
-      setGameStage("cardsDrawn");
-    } catch (err) {
-      console.error("Failed to draw cards:", err);
-      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred drawing cards.";
-      setError(errorMessage);
-      setGameStage("error");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  stopSpeech();
+  // Force voices to load (iOS workaround)
+  window.speechSynthesis.getVoices();
+  resetGame();
+  setIsLoading(true);
+  setError(null);
+  try {
+    const cards = drawThreeCards();
+    setDrawnCards(cards);
+    setGameStage("cardsDrawn");
+  } catch (err) {
+    console.error("Failed to draw cards:", err);
+    const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred drawing cards.";
+    setError(errorMessage);
+    setGameStage("error");
+  } finally {
+    setIsLoading(false);
+  }
+}, []);
 
   const handleCardClick = useCallback(async (index: number) => {
     if (revealedStates[index] || !drawnCards[index] || isCardLoading[index] || isLoading) {
