@@ -6,13 +6,14 @@ import TarotCardDisplay from './components/TarotCardDisplay';
 import ReadingDisplay from './components/ReadingDisplay';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorDisplay from './components/ErrorDisplay';
-import { speak, pauseSpeech, resumeSpeech, stopSpeech } from './utils/speech';
+import { speak, } from './utils/speech';
 
 const App: React.FC = () => {
   const initialCards: ThreeCardSpread = [null, null, null];
   const initialRevealed: RevealedStates = [false, false, false];
   const initialReadings: IndividualReadings = [null, null, null];
 
+  const [audioEnabled, setAudioEnabled] = useState(true);
   const [overallSpoken, setOverallSpoken] = useState(false);
   const [drawnCards, setDrawnCards] = useState<ThreeCardSpread>(initialCards);
   const [revealedStates, setRevealedStates] = useState<RevealedStates>(initialRevealed);
@@ -22,49 +23,53 @@ const App: React.FC = () => {
   const [isCardLoading, setIsCardLoading] = useState<[boolean, boolean, boolean]>([false, false, false]);
   const [error, setError] = useState<string | null>(null);
   const [gameStage, setGameStage] = useState<GameStage>("initial");
-  const [allCardsSpoken, setAllCardsSpoken] = useState(false); // <-- Added for audio sequencing
+  const [allCardsSpoken, setAllCardsSpoken] = useState(false);
 
   const cardPositionContexts = ["The Core Situation", "The Action or Challenge", "The Outcome or Guidance"];
 
   const resetGame = () => {
-  setDrawnCards(initialCards);
-  setRevealedStates(initialRevealed);
-  setIndividualReadings(initialReadings);
-  setOverallReading(null);
-  setError(null);
-  setIsLoading(false);
-  setIsCardLoading([false, false, false]);
-  setGameStage("initial");
-  setAllCardsSpoken(false);
-  setOverallSpoken(false); // <-- Add this line
-};
+    setDrawnCards(initialCards);
+    setRevealedStates(initialRevealed);
+    setIndividualReadings(initialReadings);
+    setOverallReading(null);
+    setError(null);
+    setIsLoading(false);
+    setIsCardLoading([false, false, false]);
+    setGameStage("initial");
+    setAllCardsSpoken(false);
+    setOverallSpoken(false);
+  };
 
   // Stop audio on page unload/refresh
   useEffect(() => {
-    window.addEventListener('beforeunload', stopSpeech);
+    const handleBeforeUnload = () => {
+      // Optionally, you can set a message here if you want a confirmation dialog
+      // event.preventDefault();
+      // event.returnValue = '';
+      window.speechSynthesis.cancel();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
-      stopSpeech();
-      window.removeEventListener('beforeunload', stopSpeech);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, []);
 
   // Only play the overall reading after all cards have been spoken
-useEffect(() => {
-  if (
-    overallReading &&
-    gameStage === "overallDone" &&
-    allCardsSpoken &&
-    !overallSpoken
-  ) {
-    speak("Your Mystic Reading. " + overallReading);
-    setOverallSpoken(true);
-  }
-}, [overallReading, gameStage, allCardsSpoken, overallSpoken]);
+  useEffect(() => {
+    if (
+      overallReading &&
+      gameStage === "overallDone" &&
+      allCardsSpoken &&
+      !overallSpoken &&
+      audioEnabled
+    ) {
+      speak("Your Mystic Reading. " + overallReading);
+      setOverallSpoken(true);
+    }
+  }, [overallReading, gameStage, allCardsSpoken, overallSpoken, audioEnabled]);
 
   // Stop audio when drawing a new spread
   const handleDrawSpread = useCallback(() => {
-  stopSpeech();
-  // Force voices to load (iOS workaround)
   window.speechSynthesis.getVoices();
   resetGame();
   setIsLoading(true);
@@ -81,50 +86,49 @@ useEffect(() => {
   } finally {
     setIsLoading(false);
   }
-}, []);
+  }, []);
 
   const handleCardClick = useCallback(async (index: number) => {
-  if (revealedStates[index] || !drawnCards[index] || isCardLoading[index] || isLoading) {
-    return;
-  }
-
-  const newCardLoading = [...isCardLoading] as [boolean, boolean, boolean];
-  newCardLoading[index] = true;
-  setIsCardLoading(newCardLoading);
-  setError(null);
-
-  try {
-    const card = drawnCards[index]!;
-    const aiReading = await getIndividualCardReading(card, cardPositionContexts[index]);
-
-    const newReadings = [...individualReadings] as IndividualReadings;
-    if (aiReading.toLowerCase().includes("error generating reading")) {
-      newReadings[index] = `Error: ${aiReading}`;
-      setError(`An issue occurred while interpreting '${card.name}'. Please check logs or try again.`);
-    } else {
-      newReadings[index] = aiReading;
-      // Call speak() directly after user interaction and after reading is ready
-      speak(aiReading);
+    if (revealedStates[index] || !drawnCards[index] || isCardLoading[index] || isLoading) {
+      return;
     }
-    setIndividualReadings(newReadings);
 
-    const newRevealedStates = [...revealedStates] as RevealedStates;
-    newRevealedStates[index] = true;
-    setRevealedStates(newRevealedStates);
+    const newCardLoading = [...isCardLoading] as [boolean, boolean, boolean];
+    newCardLoading[index] = true;
+    setIsCardLoading(newCardLoading);
+    setError(null);
 
-  } catch (err) {
-    console.error(`Failed to get reading for card ${index + 1}:`, err);
-    const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
-    setError(`Failed to get reading for ${drawnCards[index]?.name}: ${errorMessage}`);
-    const newReadings = [...individualReadings] as IndividualReadings;
-    newReadings[index] = "Error fetching reading.";
-    setIndividualReadings(newReadings);
-  } finally {
-    const finalCardLoading = [...isCardLoading] as [boolean, boolean, boolean];
-    finalCardLoading[index] = false;
-    setIsCardLoading(finalCardLoading);
-  }
-}, [drawnCards, revealedStates, individualReadings, isCardLoading, isLoading, cardPositionContexts]);
+    try {
+      const card = drawnCards[index]!;
+      const aiReading = await getIndividualCardReading(card, cardPositionContexts[index]);
+
+      const newReadings = [...individualReadings] as IndividualReadings;
+      if (aiReading.toLowerCase().includes("error generating reading")) {
+        newReadings[index] = `Error: ${aiReading}`;
+        setError(`An issue occurred while interpreting '${card.name}'. Please check logs or try again.`);
+      } else {
+        newReadings[index] = aiReading;
+        if (audioEnabled) speak(aiReading);
+      }
+      setIndividualReadings(newReadings);
+
+      const newRevealedStates = [...revealedStates] as RevealedStates;
+      newRevealedStates[index] = true;
+      setRevealedStates(newRevealedStates);
+
+    } catch (err) {
+      console.error(`Failed to get reading for card ${index + 1}:`, err);
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+      setError(`Failed to get reading for ${drawnCards[index]?.name}: ${errorMessage}`);
+      const newReadings = [...individualReadings] as IndividualReadings;
+      newReadings[index] = "Error fetching reading.";
+      setIndividualReadings(newReadings);
+    } finally {
+      const finalCardLoading = [...isCardLoading] as [boolean, boolean, boolean];
+      finalCardLoading[index] = false;
+      setIsCardLoading(finalCardLoading);
+    }
+  }, [drawnCards, revealedStates, individualReadings, isCardLoading, isLoading, cardPositionContexts, audioEnabled]);
 
   // Effect to trigger overall reading when all individual cards are revealed and have readings
   useEffect(() => {
@@ -169,7 +173,8 @@ useEffect(() => {
       if (
         revealedStates.every(Boolean) &&
         individualReadings.every(r => r) &&
-        !allCardsSpoken
+        !allCardsSpoken &&
+        audioEnabled
       ) {
         for (let i = 0; i < 3; i++) {
           await speak(individualReadings[i]!);
@@ -179,14 +184,7 @@ useEffect(() => {
     };
     speakCardReadings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [revealedStates, individualReadings, allCardsSpoken]);
-
-  // Only play the overall reading after all cards have been spoken
-  useEffect(() => {
-    if (overallReading && gameStage === "overallDone" && allCardsSpoken) {
-      speak("Your Mystic Reading. " + overallReading);
-    }
-  }, [overallReading, gameStage, allCardsSpoken]);
+  }, [revealedStates, individualReadings, allCardsSpoken, audioEnabled]);
 
   const renderCardSlots = () => {
     return drawnCards.map((card, index) => (
@@ -202,14 +200,14 @@ useEffect(() => {
           <div className={`mt-3 p-2 text-xs sm:text-sm rounded-md shadow ${individualReadings[index]?.toLowerCase().includes("error") ? 'bg-red-800/70' : 'bg-purple-700/50'} w-full max-h-60 overflow-y-auto custom-scrollbar flex flex-col gap-2`}>
             <p className="text-amber-100 leading-tight">{individualReadings[index]}</p>
             <button
-              onClick={() => speak(individualReadings[index]!)}
+              onClick={() => audioEnabled && speak(individualReadings[index]!)}
               className="self-start px-2 py-1 bg-purple-400 text-white rounded hover:bg-purple-500 mt-2"
               aria-label="Play reading aloud"
             >
               🔊 Play
             </button>
           </div>
-    )}
+        )}
         {!revealedStates[index] && drawnCards[index] && (
           <p className="mt-2 text-purple-300 text-xs sm:text-sm italic h-6">{cardPositionContexts[index]}</p>
         )}
@@ -222,6 +220,16 @@ useEffect(() => {
 
   return (
     <div className="container mx-auto max-w-4xl min-h-screen flex flex-col items-center justify-start py-8 px-2 sm:px-4 text-center">
+      {/* Audio On/Off Toggle */}
+      <div className="flex justify-end w-full mb-2">
+        <button
+          onClick={() => setAudioEnabled((prev) => !prev)}
+          className={`px-3 py-1 rounded ${audioEnabled ? 'bg-green-600' : 'bg-gray-500'} text-white font-semibold`}
+          aria-label={audioEnabled ? "Turn audio off" : "Turn audio on"}
+        >
+          {audioEnabled ? "🔊 Audio On" : "🔇 Audio Off"}
+        </button>
+      </div>
       <header className="mb-6 sm:mb-8">
         <h1 className="text-4xl sm:text-5xl font-bold text-amber-300 tracking-tight title-glow">
           Mystic Vision Three Card Spread
@@ -230,13 +238,6 @@ useEffect(() => {
       </header>
 
       <main className="w-full flex flex-col items-center">
-        {/* Optional: Audio controls */}
-        <div className="flex gap-2 mb-4">
-          <button onClick={pauseSpeech} className="px-3 py-1 bg-purple-500 text-white rounded hover:bg-purple-400">Pause Audio</button>
-          <button onClick={resumeSpeech} className="px-3 py-1 bg-purple-500 text-white rounded hover:bg-purple-400">Resume Audio</button>
-          <button onClick={stopSpeech} className="px-3 py-1 bg-purple-500 text-white rounded hover:bg-purple-400">Stop Audio</button>
-        </div>
-
         {gameStage === "initial" && (
           <button
             onClick={handleDrawSpread}
