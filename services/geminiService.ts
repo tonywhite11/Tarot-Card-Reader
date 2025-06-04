@@ -42,8 +42,8 @@ export const getIndividualCardReading = async (card: DrawnTarotCard, positionCon
   const relevantMeaning = card.isReversed ? card.fullMeaningReversed : card.fullMeaningUpright;
   const relevantKeywords = card.isReversed ? card.keywordsReversed.join(', ') : card.keywordsUpright.join(', ');
 
-  const prompt = `
-You are a mystical Tarot reader. The user is performing a three-card spread.
+ const prompt = `
+You are a mystical Tarot expert. The user is performing a three-card spread.
 They have just revealed the "${card.name}" card, which is ${orientation}. This card is in the position representing "${positionContext}".
 
 Card Details:
@@ -54,10 +54,11 @@ Card Details:
 - Core Meaning for this orientation: ${relevantMeaning}
 
 Concisely explain the essence of this single card and its immediate implication for the user based on its position and orientation.
-Offer 1-2 insightful and encouraging sentences.
+Summarize the meaning in 1 short, clear sentence (no more than 50 words). Be concise and direct.
 Do not greet the user. Directly provide the interpretation for this one card.
-Example for The Fool (upright) as 'The Situation': "An exhilarating new beginning is upon you, urging you to take a leap of faith. Trust in the journey ahead, even if the path isn't fully clear."
+Example for The Fool (upright) as 'The Situation': "An exhilarating new beginning is upon you, urging you to take a leap of faith."
 `;
+
   const result = await generateContentWithRetries(prompt);
   return result ?? "An error occurred while generating the card reading.";
 };
