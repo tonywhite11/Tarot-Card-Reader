@@ -191,10 +191,17 @@ useEffect(() => {
           isLoading={isCardLoading[index]}
         />
         {revealedStates[index] && individualReadings[index] && (
-          <div className={`mt-3 p-2 text-xs sm:text-sm rounded-md shadow ${individualReadings[index]?.toLowerCase().includes("error") ? 'bg-red-800/70' : 'bg-purple-700/50'} w-full max-h-28 overflow-y-auto custom-scrollbar`}>
+          <div className={`mt-3 p-2 text-xs sm:text-sm rounded-md shadow ${individualReadings[index]?.toLowerCase().includes("error") ? 'bg-red-800/70' : 'bg-purple-700/50'} w-full max-h-60 overflow-y-auto custom-scrollbar flex flex-col gap-2`}>
             <p className="text-amber-100 leading-tight">{individualReadings[index]}</p>
+            <button
+              onClick={() => speak(individualReadings[index]!)}
+              className="self-start px-2 py-1 bg-purple-400 text-white rounded hover:bg-purple-500 mt-2"
+              aria-label="Play reading aloud"
+            >
+              🔊 Play
+            </button>
           </div>
-        )}
+    )}
         {!revealedStates[index] && drawnCards[index] && (
           <p className="mt-2 text-purple-300 text-xs sm:text-sm italic h-6">{cardPositionContexts[index]}</p>
         )}
